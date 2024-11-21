@@ -13,6 +13,29 @@ import paths from "./paths.js"
 
 // let configsDirectory = path.join(homedir(), "linkbox-downloader");
 // createDirIfNotExist(configsDirectory);
+function sanitizeFileName(filename) {
+	// Regular expression to match invalid characters for Windows file names
+	const illegalRe = /[\/\?<>\\:\*\|":]/g;
+	const controlRe = /[\x00-\x1f\x80-\x9f]/g;
+	const reservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i;
+	const windowsReservedRe = /[<>:"\/\\|?*\x00-\x1F\x80-\x9F]/g;
+	const windowsTrailingRe = /[\. ]+$/;
+
+	// Replace illegal characters with an underscore
+	let sanitized = filename
+		.replace(illegalRe, '_')
+		.replace(controlRe, '_')
+		.replace(windowsReservedRe, '_')
+		.replace(windowsTrailingRe, '');
+
+	// Ensure the filename doesn't match any reserved names
+	if (reservedRe.test(sanitized)) {
+		sanitized = '_' + sanitized;
+	}
+
+	return sanitized;
+}
+
 
 export default async function main(devMode = false) {
 	const spinners = []
@@ -50,6 +73,9 @@ export default async function main(devMode = false) {
 		linksSpinner.start("⏳ Fetching directory links")
 		linksSpinner.isOn = true
 		let baseDirectoryName = pid && (await getBaseFolderName(pid))
+
+		baseDirectoryName = sanitizeFileName(baseDirectoryName);
+
 		// console.log(mainDirectoryName);
 		const parsedList = await getAllDownloadLinks(shareToken, pid)
 		linksSpinner.stop("✅ All directory links are fetched")

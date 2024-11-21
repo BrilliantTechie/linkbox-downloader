@@ -41,9 +41,9 @@ const roundedProxiesCreator = createProxiesAgents()
 
 const getData = async function (url) {
 	try {
-		const { proxyAgent, proxyIndex } = roundedProxiesCreator.next().value
+		//const { proxyAgent, proxyIndex } = roundedProxiesCreator.next().value
 
-		const res = await fetch(url, { agent: proxyAgent })
+		const res = await fetch(url, { /*agent: proxyAgent*/ })
 
 		if (res.status == 407 && proxyAgent) {
 			const error = new Error("Proxy Authentication Required")

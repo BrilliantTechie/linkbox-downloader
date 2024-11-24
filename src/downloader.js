@@ -39,6 +39,29 @@ const createProxiesAgents = function* () {
 
 const roundedProxiesCreator = createProxiesAgents()
 
+export function sanitizeFileName(filename) {
+	// Regular expression to match invalid characters for Windows file names
+	const illegalRe = /[\/\?<>\\:\*\|":]/g;
+	const controlRe = /[\x00-\x1f\x80-\x9f]/g;
+	const reservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i;
+	const windowsReservedRe = /[<>:"\/\\|?*\x00-\x1F\x80-\x9F]/g;
+	const windowsTrailingRe = /[\. ]+$/;
+
+	// Replace illegal characters with an underscore
+	let sanitized = filename
+		.replace(illegalRe, '_')
+		.replace(controlRe, '_')
+		.replace(windowsReservedRe, '_')
+		.replace(windowsTrailingRe, '');
+
+	// Ensure the filename doesn't match any reserved names
+	if (reservedRe.test(sanitized)) {
+		sanitized = '_' + sanitized;
+	}
+
+	return sanitized;
+}
+
 const getData = async function (url) {
 	try {
 		//const { proxyAgent, proxyIndex } = roundedProxiesCreator.next().value
@@ -118,6 +141,9 @@ const downloadFile = async (
 	console.log(`   ⏳ Downloading ${fileName} of ${dirName}.`)
 	// console.log({ dirPath, fileName });
 	console.log(``)
+
+	dirName = sanitizeFileName(dirName);
+	fileName = sanitizeFileName(fileName);
 	const downloader = new Downloader({
 		url,
 		maxAttempts: 3,
@@ -271,6 +297,7 @@ export default async function downloadDirectory(
 	completeList,
 	baseDirectoryName
 ) {
+	baseDirectoryName = sanitizeFileName(baseDirectoryName);
 	// console.log({ initialPathDirectory, baseDirectoryName });
 	for (const pidObject of completeList) {
 		// console.log(path);
@@ -282,12 +309,13 @@ export default async function downloadDirectory(
 			// pidObject is a folder
 			await downloadDirectory([dirPath], pidObject.sub, pidObject.name)
 		} else {
-			const fileName = (function () {
+
+			const fileName = function () {
 				const ext = pidObject.name.split(".").pop()
 				return ext == pidObject.extension
 					? pidObject.name
 					: pidObject.name + "." + pidObject.extension
-			})()
+			}()
 			const filePath = generateFilePath([
 				...initialPathDirectory,
 				baseDirectoryName,
